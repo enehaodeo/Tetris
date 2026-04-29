@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="classic">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tetris</title>
+<style>
+  [data-theme="classic"] {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --accent: #0f3460;
+    --text: #e94560;
+    --light: #f0f0f0;
+    --muted: #aaa;
+    --border: #333;
+    --canvas-bg: #0d0d1a;
+  }
+  [data-theme="pink"] {
+    --bg: #fff0f5;
+    --panel: #ffffff;
+    --accent: #ff69b4;
+    --text: #ff1493;
+    --light: #333333;
+    --muted: #888888;
+    --border: #ffccd5;
+    --canvas-bg: #ffe4e1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #top-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: var(--panel);
+    border-bottom: 2px solid var(--accent);
+  }
+  #top-bar h1 { font-size: 1.5rem; color: var(--text); letter-spacing: 2px; }
+  .lang-btn {
+    background: var(--accent);
+    border: 1px solid var(--text);
+    color: var(--light);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  .lang-btn:hover { background: var(--text); }
+
+  /* Menu */
+  #menu-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 24px;
+  }
+  .mode-btn {
+    width: 280px;
+    padding: 18px;
+    font-size: 1.2rem;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+  .mode-btn:hover { border-color: var(--text); transform: scale(1.03); }
+  .mode-desc { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+
+  /* Game */
+  #game-container {
+    display: none;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 140px;
+  }
+  .panel-box {
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .panel-title {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .panel-value {
+    font-size: 1.3rem;
+    color: var(--text);
+    font-weight: bold;
+  }
+  canvas { border: 3px solid var(--accent); border-radius: 4px; background: var(--canvas-bg); }
+
+  /* Overlays */
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 10;
+  }
+  #overlay h2 { font-size: 2rem; color: var(--text); }
+  .overlay-btn {
+    padding: 12px 28px;
+    font-size: 1rem;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .overlay-btn:hover { border-color: var(--text); }
+
+  .controls-hint {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  #theme-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  #theme-selector span {
+    font-size: 0.95rem;
+    color: var(--light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .theme-btn {
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .theme-btn:hover { border-color: var(--text); }
+  .theme-btn.active {
+    background: var(--text);
+    border-color: var(--text);
+    color: #fff;
+  }
+  #menu-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .settings-panel {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 320px;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .settings-panel.active {
+    display: flex;
+  }
+  .setting-row {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .setting-row label {
+    font-size: 0.95rem;
+    color: var(--light);
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+  }
+  .setting-row input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+  }
+  #btn-settings {
+    width: 280px;
+    padding: 14px;
+    font-size: 1.1rem;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+  #btn-settings:hover {
+    border-color: var(--text);
+    transform: scale(1.03);
+  }
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+  <h1 id="game-title">TETRIS</h1>
+  <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">中文</button>
+</div>
+
+<!-- Menu -->
+<div id="menu-screen">
+  <div id="menu-main">
+    <div id="theme-selector">
+      <span id="lbl-theme">Theme</span>
+      <button class="theme-btn active" data-theme="classic" onclick="setTheme('classic')">Classic</button>
+      <button class="theme-btn" data-theme="pink" onclick="setTheme('pink')">Pink</button>
+    </div>
+    <button class="mode-btn" onclick="startMode('infinite')">
+      <div id="lbl-infinite">Infinite Mode</div>
+      <div class="mode-desc" id="desc-infinite">Play endlessly. Game over when stack reaches top.</div>
+    </button>
+    <button class="mode-btn" onclick="startMode('time')">
+      <div id="lbl-time">100 Second Time Trial</div>
+      <div class="mode-desc" id="desc-time">Score as many points as possible in 100 seconds.</div>
+    </button>
+    <button class="mode-btn" onclick="startMode('sprint')">
+      <div id="lbl-sprint">40 Lines Sprint</div>
+      <div class="mode-desc" id="desc-sprint">Clear 40 lines as fast as you can.</div>
+    </button>
+    <button id="btn-settings" onclick="toggleSettings()">
+      <span id="lbl-settings">Settings</span>
+    </button>
+  </div>
+
+  <div id="settings-panel" class="settings-panel">
+    <div class="setting-row">
+      <label><span id="lbl-das">DAS Delay</span><span id="val-das">170ms</span></label>
+      <input type="range" id="input-das" min="0" max="400" step="10" value="170">
+    </div>
+    <div class="setting-row">
+      <label><span id="lbl-arr">ARR</span><span id="val-arr">50ms</span></label>
+      <input type="range" id="input-arr" min="0" max="200" step="5" value="50">
+    </div>
+    <button class="mode-btn" id="btn-back" onclick="toggleSettings()" style="width:100%; margin-top:8px;">
+      <span id="lbl-back">Back</span>
+    </button>
+  </div>
+</div>
+
+<!-- Game -->
+<div id="game-container">
+  <div class="side-panel">
+    <div class="panel-box">
+      <div class="panel-title" id="lbl-hold">Hold</div>
+      <canvas id="hold-canvas" width="100" height="80"></canvas>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title" id="lbl-stats">Stats</div>
+      <div class="panel-value" id="score">0</div>
+      <div class="panel-title" id="lbl-lines-title" style="margin-top:8px">Lines</div>
+      <div class="panel-value" id="lines">0</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title" id="lbl-time-stat">Time</div>
+      <div class="panel-value" id="time-val">0:00</div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas" width="300" height="600"></canvas>
+
+  <div class="side-panel">
+    <div class="panel-box">
+      <div class="panel-title" id="lbl-next">Next</div>
+      <canvas id="next-canvas" width="100" height="320"></canvas>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title" id="lbl-level">Level</div>
+      <div class="panel-value" id="level">1</div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div id="overlay">
+  <h2 id="overlay-msg">Game Over</h2>
+  <div id="overlay-stats" style="text-align:center; line-height:1.8;"></div>
+  <button class="overlay-btn" id="btn-retry" onclick="retryMode()">Retry</button>
+  <button class="overlay-btn" id="btn-menu" onclick="backToMenu()">Main Menu</button>
+</div>
+
+<div class="controls-hint" id="controls-hint">
+  ← → Move | ↑ Rotate | ↓ Soft Drop | Space Hard Drop | C Hold | P Pause
+</div>
+
+<script>
+// ===================== I18N =====================
+const I18N = {
+  en: {
+    title: 'TETRIS',
+    langBtn: '中文',
+    infinite: 'Infinite Mode',
+    descInfinite: 'Play endlessly. Game over when stack reaches top.',
+    time: '100 Second Time Trial',
+    descTime: 'Score as many points as possible in 100 seconds.',
+    sprint: '40 Lines Sprint',
+    descSprint: 'Clear 40 lines as fast as you can.',
+    hold: 'Hold',
+    next: 'Next',
+    stats: 'Score',
+    linesTitle: 'Lines',
+    timeStat: 'Time',
+    level: 'Level',
+    pause: 'Paused',
+    gameOver: 'Game Over',
+    complete: 'Complete!',
+    retry: 'Retry',
+    menu: 'Main Menu',
+    finalScore: 'Score',
+    finalLines: 'Lines',
+    finalTime: 'Time',
+    controls: '← → Move | ↑ Rotate | ↓ Soft Drop | Space Hard Drop | C Hold | P Pause',
+    theme: 'Theme',
+    themeClassic: 'Classic',
+    themePink: 'Pink',
+    settings: 'Settings',
+    dasDelay: 'DAS Delay',
+    arr: 'ARR',
+    back: 'Back'
+  },
+  zh: {
+    title: '俄罗斯方块',
+    langBtn: 'English',
+    infinite: '无尽模式',
+    descInfinite: '无限游玩，方块堆到顶部时游戏结束。',
+    time: '100秒限时挑战',
+    descTime: '在100秒内尽可能获得高分。',
+    sprint: '40行竞速',
+    descSprint: '尽快消除40行。',
+    hold: '暂存',
+    next: '下一个',
+    stats: '分数',
+    linesTitle: '行数',
+    timeStat: '时间',
+    level: '等级',
+    pause: '已暂停',
+    gameOver: '游戏结束',
+    complete: '完成！',
+    retry: '重试',
+    menu: '主菜单',
+    finalScore: '分数',
+    finalLines: '行数',
+    finalTime: '时间',
+    controls: '← → 移动 | ↑ 旋转 | ↓ 软降 | 空格 硬降 | C 暂存 | P 暂停',
+    theme: '主题',
+    themeClassic: '经典',
+    themePink: '粉白',
+    settings: '设置',
+    dasDelay: 'DAS 延迟',
+    arr: 'ARR',
+    back: '返回'
+  }
+};
+
+let lang = 'en';
+function toggleLang() {
+  lang = lang === 'en' ? 'zh' : 'en';
+  applyLang();
+  saveSettings();
+}
+function applyLang() {
+  const t = I18N[lang];
+  document.getElementById('game-title').textContent = t.title;
+  document.getElementById('lang-toggle').textContent = t.langBtn;
+  document.getElementById('lbl-infinite').textContent = t.infinite;
+  document.getElementById('desc-infinite').textContent = t.descInfinite;
+  document.getElementById('lbl-time').textContent = t.time;
+  document.getElementById('desc-time').textContent = t.descTime;
+  document.getElementById('lbl-sprint').textContent = t.sprint;
+  document.getElementById('desc-sprint').textContent = t.descSprint;
+  document.getElementById('lbl-hold').textContent = t.hold;
+  document.getElementById('lbl-next').textContent = t.next;
+  document.getElementById('lbl-stats').textContent = t.stats;
+  document.getElementById('lbl-lines-title').textContent = t.linesTitle;
+  document.getElementById('lbl-time-stat').textContent = t.timeStat;
+  document.getElementById('lbl-level').textContent = t.level;
+  document.getElementById('btn-retry').textContent = t.retry;
+  document.getElementById('btn-menu').textContent = t.menu;
+  document.getElementById('controls-hint').textContent = t.controls;
+  document.getElementById('lbl-theme').textContent = t.theme;
+  document.querySelector('.theme-btn[data-theme="classic"]').textContent = t.themeClassic;
+  document.querySelector('.theme-btn[data-theme="pink"]').textContent = t.themePink;
+  document.getElementById('lbl-settings').textContent = t.settings;
+  document.getElementById('lbl-das').textContent = t.dasDelay;
+  document.getElementById('lbl-arr').textContent = t.arr;
+  document.getElementById('btn-back').textContent = t.back;
+}
+
+// ===================== GAME CONSTANTS =====================
+const COLS = 10;
+const ROWS = 20;
+const BLOCK = 30;
+const THEMES = {
+  classic: {
+    blocks: { I: '#00f0f0', O: '#f0f000', T: '#a000f0', S: '#00f000', Z: '#f00000', J: '#0000f0', L: '#f0a000' },
+    ghost: 'rgba(255,255,255,0.15)',
+    ghostStroke: 'rgba(255,255,255,0.1)',
+    grid: 'rgba(255,255,255,0.03)',
+    blockStroke: 'rgba(0,0,0,0.5)',
+    blockHighlight: 'rgba(255,255,255,0.25)'
+  },
+  pink: {
+    blocks: { I: '#FF69B4', O: '#FFB6C1', T: '#FF1493', S: '#00E5FF', Z: '#FF1744', J: '#FFC0CB', L: '#FFD740' },
+    ghost: 'rgba(0,0,0,0.08)',
+    ghostStroke: 'rgba(0,0,0,0.06)',
+    grid: 'rgba(0,0,0,0.05)',
+    blockStroke: 'rgba(0,0,0,0.15)',
+    blockHighlight: 'rgba(0,0,0,0.08)'
+  }
+};
+
+let currentTheme = 'classic';
+let COLORS = { ...THEMES.classic.blocks, ghost: THEMES.classic.ghost, empty: null };
+
+function setTheme(name) {
+  currentTheme = name;
+  const t = THEMES[name];
+  COLORS = { ...t.blocks, ghost: t.ghost, empty: null };
+  document.documentElement.setAttribute('data-theme', name);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === name);
+  });
+  draw();
+  saveSettings();
+}
+
+const SHAPES = {
+  I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  O: [[1,1],[1,1]],
+  T: [[0,1,0],[1,1,1],[0,0,0]],
+  S: [[0,1,1],[1,1,0],[0,0,0]],
+  Z: [[1,1,0],[0,1,1],[0,0,0]],
+  J: [[1,0,0],[1,1,1],[0,0,0]],
+  L: [[0,0,1],[1,1,1],[0,0,0]]
+};
+
+const KICKS = [
+  [0,0],
+  [-1,0],[1,0],[0,-1],
+  [-1,-1],[1,-1],[-1,1],[1,1],
+  [0,1],[-2,0],[2,0]
+];
+
+// ===================== STATE =====================
+let board = [];
+let current = null;
+let hold = null;
+let canHold = true;
+let bag = [];
+let nextPieces = [];
+let score = 0;
+let linesCleared = 0;
+let level = 1;
+let startTime = 0;
+let elapsed = 0;
+let b2bChain = -1;
+let combo = -1;
+let mode = 'infinite';
+let running = false;
+let paused = false;
+let gameOver = false;
+let dropTimer = 0;
+let dropInterval = 1000;
+let animFrame = 0;
+const keysPressed = {};
+let dasLast = null; // 'left' | 'right'
+let dasTimer = 0;
+let dasDelay = 170;
+let dasRepeat = 50;
+let softDropPressed = false;
+let softDropTimer = 0;
+const SOFT_DROP_REPEAT = 50;
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const holdCanvas = document.getElementById('hold-canvas');
+const holdCtx = holdCanvas.getContext('2d');
+const nextCanvas = document.getElementById('next-canvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+// ===================== LOGIC =====================
+function newBoard() {
+  return Array.from({length: ROWS}, () => Array(COLS).fill(null));
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+function fillBag() {
+  const pieces = Object.keys(SHAPES);
+  shuffle(pieces);
+  bag.push(...pieces);
+}
+
+function nextPiece() {
+  if (bag.length === 0) fillBag();
+  return bag.pop();
+}
+
+function spawnPiece(type) {
+  const shape = SHAPES[type];
+  const w = shape[0].length;
+  const x = Math.floor((COLS - w) / 2);
+  const y = 0;
+  return { type, shape, x, y, rot: 0 };
+}
+
+function rotate(shape, dir=1) {
+  const N = shape.length;
+  const res = Array.from({length: N}, () => Array(N).fill(0));
+  if (dir === 1) {
+    for (let r=0;r<N;r++) for (let c=0;c<N;c++) res[c][N-1-r] = shape[r][c];
+  } else {
+    for (let r=0;r<N;r++) for (let c=0;c<N;c++) res[N-1-c][r] = shape[r][c];
+  }
+  return res;
+}
+
+function isValid(piece, offX=0, offY=0, newShape=null) {
+  const s = newShape || piece.shape;
+  for (let r=0;r<s.length;r++) {
+    for (let c=0;c<s[r].length;c++) {
+      if (s[r][c]) {
+        const x = piece.x + c + offX;
+        const y = piece.y + r + offY;
+        if (x < 0 || x >= COLS || y >= ROWS) return false;
+        if (y >= 0 && board[y][x]) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function lockPiece() {
+  const s = current.shape;
+  for (let r=0;r<s.length;r++) {
+    for (let c=0;c<s[r].length;c++) {
+      if (s[r][c]) {
+        const y = current.y + r;
+        const x = current.x + c;
+        if (y < 0) { endGame(); return; }
+        board[y][x] = current.type;
+      }
+    }
+  }
+  clearLines();
+  spawnNext();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r=ROWS-1;r>=0;r--) {
+    if (board[r].every(cell => cell !== null)) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+      cleared++;
+      r++;
+    }
+  }
+  if (cleared > 0) {
+    linesCleared += cleared;
+    if (mode !== 'sprint') {
+      combo++;
+      const basePts = [0, 100, 300, 500, 800];
+      let lineScore = basePts[cleared] * level;
+      if (cleared === 4) {
+        if (b2bChain >= 1) lineScore = Math.floor(lineScore * 1.5);
+        b2bChain = b2bChain >= 1 ? b2bChain + 1 : 1;
+      } else {
+        b2bChain = -1;
+      }
+      if (combo > 0) lineScore += 50 * combo * level;
+      score += lineScore;
+    }
+    level = Math.floor(linesCleared / 10) + 1;
+    dropInterval = Math.max(50, 1000 - (level - 1) * 80);
+    updateUI();
+    if (mode === 'sprint' && linesCleared >= 40) endGame(true);
+  } else {
+    combo = -1;
+  }
+}
+
+function spawnNext() {
+  current = spawnPiece(nextPieces.shift());
+  nextPieces.push(nextPiece());
+  canHold = true;
+  if (!isValid(current)) endGame();
+}
+
+function tryRotate(dir) {
+  const newShape = rotate(current.shape, dir);
+  for (const [kx, ky] of KICKS) {
+    if (isValid(current, kx, ky, newShape)) {
+      current.shape = newShape;
+      current.x += kx;
+      current.y += ky;
+      current.rot = (current.rot + dir) & 3;
+      return;
+    }
+  }
+}
+
+function hardDrop() {
+  let cells = 0;
+  while (isValid(current, 0, 1)) { current.y++; cells++; }
+  if (mode !== 'sprint') score += 2 * cells;
+  lockPiece();
+}
+
+function move(dx, dy) {
+  if (isValid(current, dx, dy)) {
+    current.x += dx;
+    current.y += dy;
+    return true;
+  }
+  return false;
+}
+
+function doHold() {
+  if (!canHold) return;
+  if (hold) {
+    const tmp = hold;
+    hold = current.type;
+    current = spawnPiece(tmp);
+  } else {
+    hold = current.type;
+    spawnNext();
+    canHold = false; // already reset in spawnNext, but set false anyway
+    return;
+  }
+  canHold = false;
+}
+
+function getGhostY() {
+  let y = 0;
+  while (isValid(current, 0, y + 1)) y++;
+  return current.y + y;
+}
+
+// ===================== DRAW =====================
+function drawBlock(ctx, x, y, color, size=BLOCK) {
+  const th = THEMES[currentTheme];
+  ctx.fillStyle = color;
+  ctx.fillRect(x * size, y * size, size, size);
+  ctx.strokeStyle = th.blockStroke;
+  ctx.strokeRect(x * size, y * size, size, size);
+  ctx.fillStyle = th.blockHighlight;
+  ctx.fillRect(x * size + 3, y * size + 3, size - 6, size - 6);
+}
+
+function drawMini(ctx, type, ox, oy, size=20) {
+  const shape = SHAPES[type];
+  const color = COLORS[type];
+  const h = shape.length;
+  const w = shape[0].length;
+  const th = THEMES[currentTheme];
+  for (let r=0;r<h;r++) {
+    for (let c=0;c<w;c++) {
+      if (shape[r][c]) {
+        ctx.fillStyle = color;
+        ctx.fillRect(ox + c * size, oy + r * size, size, size);
+        ctx.strokeStyle = th.blockStroke;
+        ctx.strokeRect(ox + c * size, oy + r * size, size, size);
+      }
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const th = THEMES[currentTheme];
+  // Board
+  for (let r=0;r<ROWS;r++) {
+    for (let c=0;c<COLS;c++) {
+      if (board[r][c]) drawBlock(ctx, c, r, COLORS[board[r][c]]);
+      else {
+        ctx.strokeStyle = th.grid;
+        ctx.strokeRect(c * BLOCK, r * BLOCK, BLOCK, BLOCK);
+      }
+    }
+  }
+
+  if (!current) return;
+
+  // Ghost
+  const gy = getGhostY();
+  const s = current.shape;
+  ctx.fillStyle = COLORS.ghost;
+  for (let r=0;r<s.length;r++) {
+    for (let c=0;c<s[r].length;c++) {
+      if (s[r][c]) {
+        ctx.fillRect((current.x + c) * BLOCK, (gy + r) * BLOCK, BLOCK, BLOCK);
+        ctx.strokeStyle = th.ghostStroke;
+        ctx.strokeRect((current.x + c) * BLOCK, (gy + r) * BLOCK, BLOCK, BLOCK);
+      }
+    }
+  }
+
+  // Current
+  for (let r=0;r<s.length;r++) {
+    for (let c=0;c<s[r].length;c++) {
+      if (s[r][c]) drawBlock(ctx, current.x + c, current.y + r, COLORS[current.type]);
+    }
+  }
+
+  // Hold
+  holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+  if (hold) drawMini(holdCtx, hold, 10, 10, 22);
+
+  // Next
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  for (let i=0;i<5;i++) {
+    drawMini(nextCtx, nextPieces[i], 10, 10 + i * 58, 20);
+  }
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = mode === 'sprint' ? '--' : score;
+  document.getElementById('lines').textContent = mode === 'sprint' ? `${linesCleared}/40` : linesCleared;
+  document.getElementById('level').textContent = level;
+  const t = Math.floor(elapsed / 1000);
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  document.getElementById('time-val').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+// ===================== LOOP =====================
+let lastTime = 0;
+function loop(ts) {
+  if (!running) return;
+  animFrame = requestAnimationFrame(loop);
+  if (paused || gameOver) return;
+
+  const dt = ts - lastTime;
+  lastTime = ts;
+
+  elapsed += dt;
+  dropTimer += dt;
+
+  if (mode === 'time' && elapsed >= 100000) {
+    endGame(true);
+    return;
+  }
+
+  while (dropTimer >= dropInterval) {
+    dropTimer -= dropInterval;
+    if (!move(0, 1)) lockPiece();
+  }
+
+  if (dasLast) {
+    dasTimer += dt;
+    if (dasRepeat <= 0) {
+      if (dasTimer >= dasDelay) {
+        move(dasLast === 'left' ? -1 : 1, 0);
+        dasTimer = dasDelay;
+      }
+    } else {
+      while (dasTimer >= dasDelay) {
+        dasTimer -= dasRepeat;
+        move(dasLast === 'left' ? -1 : 1, 0);
+      }
+    }
+  }
+
+  if (softDropPressed) {
+    softDropTimer += dt;
+    while (softDropTimer >= SOFT_DROP_REPEAT) {
+      softDropTimer -= SOFT_DROP_REPEAT;
+      if (move(0, 1) && mode !== 'sprint') score += 1;
+    }
+  }
+
+  updateUI();
+  draw();
+}
+
+// ===================== CONTROL =====================
+document.addEventListener('keydown', e => {
+  if (keysPressed[e.key]) return;
+  keysPressed[e.key] = true;
+
+  if (!running || gameOver) {
+    if (e.key === 'Escape' && gameOver) backToMenu();
+    return;
+  }
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    paused = !paused;
+    if (paused) {
+      document.getElementById('overlay-msg').textContent = I18N[lang].pause;
+      document.getElementById('overlay-stats').innerHTML = '';
+      document.getElementById('btn-retry').style.display = 'none';
+      document.getElementById('overlay').style.display = 'flex';
+    } else {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('btn-retry').style.display = 'inline-block';
+    }
+    return;
+  }
+  if (paused) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      move(-1, 0);
+      dasLast = 'left';
+      dasTimer = 0;
+      break;
+    case 'ArrowRight':
+      move(1, 0);
+      dasLast = 'right';
+      dasTimer = 0;
+      break;
+    case 'ArrowDown':
+      softDropPressed = true;
+      softDropTimer = 0;
+      if (move(0, 1) && mode !== 'sprint') score += 1;
+      break;
+    case 'ArrowUp':
+      tryRotate(1);
+      break;
+    case 'z': case 'Z':
+      tryRotate(-1);
+      break;
+    case ' ':
+      hardDrop();
+      break;
+    case 'c': case 'C':
+      doHold();
+      break;
+  }
+  draw();
+});
+
+document.addEventListener('keyup', e => {
+  keysPressed[e.key] = false;
+  if (e.key === 'ArrowLeft') {
+    if (dasLast === 'left') {
+      if (keysPressed['ArrowRight']) {
+        move(1, 0);
+        dasLast = 'right';
+        dasTimer = 0;
+      } else {
+        dasLast = null;
+      }
+    }
+  }
+  if (e.key === 'ArrowRight') {
+    if (dasLast === 'right') {
+      if (keysPressed['ArrowLeft']) {
+        move(-1, 0);
+        dasLast = 'left';
+        dasTimer = 0;
+      } else {
+        dasLast = null;
+      }
+    }
+  }
+  if (e.key === 'ArrowDown') {
+    softDropPressed = false;
+    softDropTimer = 0;
+  }
+});
+
+// ===================== MODES =====================
+function startMode(m) {
+  mode = m;
+  document.getElementById('menu-screen').style.display = 'none';
+  document.getElementById('game-container').style.display = 'flex';
+  document.getElementById('overlay').style.display = 'none';
+
+  board = newBoard();
+  bag = [];
+  nextPieces = [];
+  for (let i=0;i<6;i++) nextPieces.push(nextPiece());
+  current = spawnPiece(nextPieces.shift());
+  hold = null;
+  canHold = true;
+  score = 0;
+  linesCleared = 0;
+  level = 1;
+  dropInterval = 1000;
+  dropTimer = 0;
+  elapsed = 0;
+  b2bChain = -1;
+  combo = -1;
+  gameOver = false;
+  paused = false;
+  running = true;
+  lastTime = performance.now();
+  updateUI();
+  draw();
+  animFrame = requestAnimationFrame(loop);
+}
+
+function endGame(completed=false) {
+  gameOver = true;
+  running = false;
+  cancelAnimationFrame(animFrame);
+
+  const t = I18N[lang];
+  document.getElementById('overlay-msg').textContent = completed ? t.complete : t.gameOver;
+  const timeStr = document.getElementById('time-val').textContent;
+  if (mode === 'sprint') {
+    document.getElementById('overlay-stats').innerHTML =
+      `<div><strong>${t.finalLines}:</strong> ${linesCleared}/40</div>` +
+      `<div><strong>${t.finalTime}:</strong> ${timeStr}</div>`;
+  } else {
+    document.getElementById('overlay-stats').innerHTML =
+      `<div><strong>${t.finalScore}:</strong> ${score}</div>` +
+      `<div><strong>${t.finalLines}:</strong> ${linesCleared}</div>` +
+      `<div><strong>${t.finalTime}:</strong> ${timeStr}</div>`;
+  }
+  document.getElementById('btn-retry').style.display = 'inline-block';
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+function retryMode() {
+  startMode(mode);
+}
+
+function backToMenu() {
+  running = false;
+  cancelAnimationFrame(animFrame);
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('game-container').style.display = 'none';
+  document.getElementById('menu-screen').style.display = 'flex';
+}
+
+function saveSettings() {
+  localStorage.setItem('tetrisSettings', JSON.stringify({
+    das: dasDelay,
+    arr: dasRepeat,
+    theme: currentTheme,
+    lang: lang
+  }));
+}
+
+function loadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('tetrisSettings'));
+    if (saved) {
+      if (typeof saved.das === 'number') dasDelay = saved.das;
+      if (typeof saved.arr === 'number') dasRepeat = saved.arr;
+      if (saved.theme && THEMES[saved.theme]) currentTheme = saved.theme;
+      if (saved.lang && I18N[saved.lang]) lang = saved.lang;
+    }
+  } catch (e) {}
+  document.getElementById('input-das').value = dasDelay;
+  document.getElementById('input-arr').value = dasRepeat;
+  updateSettingsLabels();
+}
+
+function updateSettingsLabels() {
+  document.getElementById('val-das').textContent = dasDelay + 'ms';
+  document.getElementById('val-arr').textContent = dasRepeat + 'ms';
+}
+
+function toggleSettings() {
+  const main = document.getElementById('menu-main');
+  const panel = document.getElementById('settings-panel');
+  const showing = panel.classList.contains('active');
+  if (showing) {
+    panel.classList.remove('active');
+    main.style.display = 'flex';
+  } else {
+    panel.classList.add('active');
+    main.style.display = 'none';
+  }
+}
+
+document.getElementById('input-das').addEventListener('input', e => {
+  dasDelay = parseInt(e.target.value, 10);
+  updateSettingsLabels();
+  saveSettings();
+});
+document.getElementById('input-arr').addEventListener('input', e => {
+  dasRepeat = parseInt(e.target.value, 10);
+  updateSettingsLabels();
+  saveSettings();
+});
+
+loadSettings();
+setTheme(currentTheme);
+applyLang();
+</script>
+</body>
+</html>
