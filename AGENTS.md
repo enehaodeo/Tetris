@@ -123,3 +123,22 @@ Because the project is a single static HTML file, deployment is trivial:
 - No user input is persisted or sent over the network.
 - No external resources (scripts, fonts, images) are loaded.
 - The game runs entirely in the browser sandbox with no special permissions.
+
+## Agent Environment Notes
+
+### Network / Proxy Configuration
+
+This development machine routes internet traffic through **Clash Verge** (system proxy `127.0.0.1:20000`).
+
+- **Browsers and PowerShell** automatically use the system proxy and can reach GitHub without issues.
+- **Git does NOT automatically use the system proxy.** If you need to push/pull from GitHub, configure Git explicitly:
+  ```bash
+  git config --global http.proxy http://127.0.0.1:20000
+  git config --global https.proxy http://127.0.0.1:20000
+  ```
+- If Clash is turned off later, unset the proxy so Git continues to work:
+  ```bash
+  git config --global --unset http.proxy
+  git config --global --unset https.proxy
+  ```
+- The `hosts` file contains hard-coded GitHub IPs (`github.com`, `raw.githubusercontent.com`, etc.) as a DNS fallback.
