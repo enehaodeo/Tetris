@@ -232,6 +232,155 @@
     border-color: var(--text);
     transform: scale(1.03);
   }
+  #btn-highscores {
+    width: 280px;
+    padding: 14px;
+    font-size: 1.1rem;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+  #btn-highscores:hover {
+    border-color: var(--text);
+    transform: scale(1.03);
+  }
+
+  /* High Scores panel */
+  .highscores-panel {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 480px;
+    max-width: 92vw;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .highscores-panel.active { display: flex; }
+  .highscores-tabs {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    border-bottom: 1px solid var(--accent);
+  }
+  .hs-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 8px 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .hs-tab:hover { color: var(--light); }
+  .hs-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+    font-weight: bold;
+  }
+  #highscores-body {
+    width: 100%;
+    min-height: 240px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .highscores-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    color: var(--light);
+  }
+  .highscores-table th {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.7rem;
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--accent);
+  }
+  .highscores-table td {
+    padding: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .highscores-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  [data-theme="pink"] .highscores-table tr:nth-child(even) td { background: rgba(0,0,0,0.03); }
+  .highscores-table .hs-rank { color: var(--text); font-weight: bold; width: 40px; }
+  .highscores-table .hs-name { font-weight: 600; }
+  .hs-empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 16px;
+    font-style: italic;
+  }
+  .new-record {
+    color: var(--text);
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  /* High score modals */
+  .hs-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+  }
+  .hs-modal.active { display: flex; }
+  .hs-modal-box {
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 280px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .hs-modal-box h3 {
+    color: var(--text);
+    font-size: 1.3rem;
+  }
+  .hs-modal-box label {
+    color: var(--light);
+    font-size: 0.9rem;
+    align-self: flex-start;
+  }
+  #name-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--canvas-bg);
+    border: 2px solid var(--accent);
+    color: var(--light);
+    border-radius: 4px;
+    font-size: 1rem;
+    outline: none;
+  }
+  #name-input:focus { border-color: var(--text); }
+  .hs-modal-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .hs-rank-display {
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
@@ -264,6 +413,9 @@
     <button id="btn-settings" onclick="toggleSettings()">
       <span id="lbl-settings">Settings</span>
     </button>
+    <button id="btn-highscores" onclick="toggleHighScores()">
+      <span id="lbl-highscores">High Scores</span>
+    </button>
   </div>
 
   <div id="settings-panel" class="settings-panel">
@@ -277,6 +429,27 @@
     </div>
     <button class="mode-btn" id="btn-back" onclick="toggleSettings()" style="width:100%; margin-top:8px;">
       <span id="lbl-back">Back</span>
+    </button>
+  </div>
+
+  <div id="highscores-panel" class="highscores-panel">
+    <div class="highscores-tabs">
+      <button class="hs-tab active" data-mode="infinite" onclick="switchHsTab('infinite')">
+        <span id="lbl-hs-infinite">Infinite</span>
+      </button>
+      <button class="hs-tab" data-mode="time" onclick="switchHsTab('time')">
+        <span id="lbl-hs-time">Time</span>
+      </button>
+      <button class="hs-tab" data-mode="sprint" onclick="switchHsTab('sprint')">
+        <span id="lbl-hs-sprint">Sprint</span>
+      </button>
+    </div>
+    <div id="highscores-body"></div>
+    <button class="mode-btn" id="btn-clear-scores" onclick="confirmClearScores()" style="width:100%;">
+      <span id="lbl-clear-scores">Clear Scores</span>
+    </button>
+    <button class="mode-btn" id="btn-hs-back" onclick="toggleHighScores()" style="width:100%;">
+      <span id="lbl-hs-back">Back</span>
     </button>
   </div>
 </div>
@@ -319,7 +492,38 @@
   <h2 id="overlay-msg">Game Over</h2>
   <div id="overlay-stats" style="text-align:center; line-height:1.8;"></div>
   <button class="overlay-btn" id="btn-retry" onclick="retryMode()">Retry</button>
+  <button class="overlay-btn" id="btn-restart" onclick="retryMode()" style="display:none">Restart</button>
+  <button class="overlay-btn" id="btn-cancel-restart" onclick="cancelRestart()" style="display:none">Cancel</button>
   <button class="overlay-btn" id="btn-menu" onclick="backToMenu()">Main Menu</button>
+</div>
+
+<!-- High Score Modals -->
+<div id="name-modal" class="hs-modal">
+  <div class="hs-modal-box">
+    <h3 id="lbl-new-record">New Record!</h3>
+    <div id="hs-rank-display" class="hs-rank-display"></div>
+    <label id="lbl-enter-name" for="name-input">Enter your name:</label>
+    <input type="text" id="name-input" maxlength="12" autocomplete="off">
+    <div class="hs-modal-row">
+      <button class="overlay-btn" id="btn-name-submit" onclick="submitName()">
+        <span id="lbl-name-submit">OK</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="clear-modal" class="hs-modal">
+  <div class="hs-modal-box">
+    <h3 id="lbl-confirm-clear">Clear all scores?</h3>
+    <div class="hs-modal-row">
+      <button class="overlay-btn" id="btn-clear-yes" onclick="doClearScores()">
+        <span id="lbl-clear-yes">Yes</span>
+      </button>
+      <button class="overlay-btn" id="btn-clear-no" onclick="hideClearModal()">
+        <span id="lbl-clear-no">Cancel</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="controls-hint" id="controls-hint">
@@ -359,7 +563,27 @@ const I18N = {
     settings: 'Settings',
     dasDelay: 'DAS Delay',
     arr: 'ARR',
-    back: 'Back'
+    back: 'Back',
+    restart: 'Restart',
+    cancel: 'Cancel',
+    restartConfirm: 'Restart?',
+    highScores: 'High Scores',
+    newRecord: 'New Record!',
+    rank: 'Rank',
+    rankCol: '#',
+    nameCol: 'Name',
+    scoreCol: 'Score',
+    linesCol: 'Lines',
+    timeCol: 'Time',
+    dateCol: 'Date',
+    noScores: 'No scores yet',
+    clearScores: 'Clear Scores',
+    confirmClear: 'Clear all scores?',
+    enterName: 'Enter your name:',
+    submit: 'OK',
+    yes: 'Yes',
+    no: 'Cancel',
+    inMenuLabel: 'Rank #'
   },
   zh: {
     title: '俄罗斯方块',
@@ -391,7 +615,27 @@ const I18N = {
     settings: '设置',
     dasDelay: 'DAS 延迟',
     arr: 'ARR',
-    back: '返回'
+    back: '返回',
+    restart: '重新开始',
+    cancel: '取消',
+    restartConfirm: '重新开始？',
+    highScores: '高分榜',
+    newRecord: '新纪录！',
+    rank: '排名',
+    rankCol: '#',
+    nameCol: '名字',
+    scoreCol: '分数',
+    linesCol: '行数',
+    timeCol: '时间',
+    dateCol: '日期',
+    noScores: '暂无记录',
+    clearScores: '清除记录',
+    confirmClear: '确定清除所有记录？',
+    enterName: '请输入你的名字：',
+    submit: '确定',
+    yes: '确定',
+    no: '取消',
+    inMenuLabel: '第'
   }
 };
 
@@ -419,6 +663,8 @@ function applyLang() {
   document.getElementById('lbl-level').textContent = t.level;
   document.getElementById('btn-retry').textContent = t.retry;
   document.getElementById('btn-menu').textContent = t.menu;
+  if (document.getElementById('btn-restart')) document.getElementById('btn-restart').textContent = t.restart;
+  if (document.getElementById('btn-cancel-restart')) document.getElementById('btn-cancel-restart').textContent = t.cancel;
   document.getElementById('controls-hint').textContent = t.controls;
   document.getElementById('lbl-theme').textContent = t.theme;
   document.querySelector('.theme-btn[data-theme="classic"]').textContent = t.themeClassic;
@@ -427,6 +673,20 @@ function applyLang() {
   document.getElementById('lbl-das').textContent = t.dasDelay;
   document.getElementById('lbl-arr').textContent = t.arr;
   document.getElementById('btn-back').textContent = t.back;
+  // High Scores labels
+  document.getElementById('lbl-highscores').textContent = t.highScores;
+  document.getElementById('lbl-hs-infinite').textContent = t.infinite;
+  document.getElementById('lbl-hs-time').textContent = t.time;
+  document.getElementById('lbl-hs-sprint').textContent = t.sprint;
+  document.getElementById('lbl-clear-scores').textContent = t.clearScores;
+  document.getElementById('lbl-hs-back').textContent = t.back;
+  document.getElementById('lbl-new-record').textContent = t.newRecord;
+  document.getElementById('lbl-enter-name').textContent = t.enterName;
+  document.getElementById('lbl-name-submit').textContent = t.submit;
+  document.getElementById('lbl-confirm-clear').textContent = t.confirmClear;
+  document.getElementById('lbl-clear-yes').textContent = t.yes;
+  document.getElementById('lbl-clear-no').textContent = t.no;
+  if (typeof renderHighScores === 'function') renderHighScores();
 }
 
 // ===================== GAME CONSTANTS =====================
@@ -513,6 +773,15 @@ let dasRepeat = 50;
 let softDropPressed = false;
 let softDropTimer = 0;
 const SOFT_DROP_REPEAT = 50;
+let lastRTime = 0;
+let restartPending = false;
+
+// High score state
+let highScores = { infinite: [], time: [], sprint: [] };
+let currentHsTab = 'infinite';
+let lastName = '';
+let pendingScoreObj = null;
+let pendingScoreMode = null;
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -825,6 +1094,14 @@ function loop(ts) {
 
 // ===================== CONTROL =====================
 document.addEventListener('keydown', e => {
+  // Suppress all game-key handling when a high-score modal is open
+  const nameModal = document.getElementById('name-modal');
+  const clearModal = document.getElementById('clear-modal');
+  if ((nameModal && nameModal.classList.contains('active')) ||
+      (clearModal && clearModal.classList.contains('active'))) {
+    return;
+  }
+
   if (keysPressed[e.key]) return;
   keysPressed[e.key] = true;
 
@@ -832,20 +1109,48 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && gameOver) backToMenu();
     return;
   }
+
+  if (restartPending) {
+    if (e.key === 'r' || e.key === 'R') { retryMode(); return; }
+    if (e.key === 'Escape') { cancelRestart(); return; }
+    return;
+  }
+
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
     paused = !paused;
     if (paused) {
       document.getElementById('overlay-msg').textContent = I18N[lang].pause;
       document.getElementById('overlay-stats').innerHTML = '';
       document.getElementById('btn-retry').style.display = 'none';
+      document.getElementById('btn-restart').style.display = 'inline-block';
+      document.getElementById('btn-cancel-restart').style.display = 'none';
       document.getElementById('overlay').style.display = 'flex';
     } else {
       document.getElementById('overlay').style.display = 'none';
       document.getElementById('btn-retry').style.display = 'inline-block';
+      document.getElementById('btn-restart').style.display = 'none';
     }
     return;
   }
   if (paused) return;
+
+  if (e.key === 'r' || e.key === 'R') {
+    const now = Date.now();
+    if (now - lastRTime < 500) {
+      paused = true;
+      restartPending = true;
+      document.getElementById('overlay-msg').textContent = I18N[lang].restartConfirm;
+      document.getElementById('overlay-stats').innerHTML = '';
+      document.getElementById('btn-retry').style.display = 'none';
+      document.getElementById('btn-restart').style.display = 'inline-block';
+      document.getElementById('btn-cancel-restart').style.display = 'inline-block';
+      document.getElementById('overlay').style.display = 'flex';
+      lastRTime = 0;
+      return;
+    }
+    lastRTime = now;
+    return;
+  }
 
   switch (e.key) {
     case 'ArrowLeft':
@@ -933,6 +1238,8 @@ function startMode(m) {
   combo = -1;
   gameOver = false;
   paused = false;
+  restartPending = false;
+  lastRTime = 0;
   running = true;
   lastTime = performance.now();
   updateUI();
@@ -959,11 +1266,42 @@ function endGame(completed=false) {
       `<div><strong>${t.finalTime}:</strong> ${timeStr}</div>`;
   }
   document.getElementById('btn-retry').style.display = 'inline-block';
+  document.getElementById('btn-restart').style.display = 'none';
+  document.getElementById('btn-cancel-restart').style.display = 'none';
   document.getElementById('overlay').style.display = 'flex';
+  restartPending = false;
+
+  // High score qualification check
+  let scoreObj = null;
+  if (mode === 'sprint' && completed) {
+    scoreObj = { time: elapsed, lines: linesCleared, name: '', date: new Date().toISOString() };
+  } else if (mode === 'time') {
+    scoreObj = { score, lines: linesCleared, name: '', date: new Date().toISOString() };
+  } else if (mode === 'infinite') {
+    scoreObj = { score, lines: linesCleared, time: elapsed, name: '', date: new Date().toISOString() };
+  }
+  if (scoreObj) {
+    const rank = qualifiesForHighScore(mode, scoreObj);
+    if (rank >= 0) {
+      showOverlayNewRecord(rank);
+      promptName(scoreObj, rank, mode);
+    }
+  }
 }
 
 function retryMode() {
   startMode(mode);
+}
+
+function cancelRestart() {
+  restartPending = false;
+  lastRTime = 0;
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('btn-restart').style.display = 'none';
+  document.getElementById('btn-cancel-restart').style.display = 'none';
+  paused = false;
+  lastTime = performance.now();
+  animFrame = requestAnimationFrame(loop);
 }
 
 function backToMenu() {
@@ -979,7 +1317,8 @@ function saveSettings() {
     das: dasDelay,
     arr: dasRepeat,
     theme: currentTheme,
-    lang: lang
+    lang: lang,
+    lastName: lastName
   }));
 }
 
@@ -991,6 +1330,7 @@ function loadSettings() {
       if (typeof saved.arr === 'number') dasRepeat = saved.arr;
       if (saved.theme && THEMES[saved.theme]) currentTheme = saved.theme;
       if (saved.lang && I18N[saved.lang]) lang = saved.lang;
+      if (typeof saved.lastName === 'string') lastName = saved.lastName;
     }
   } catch (e) {}
   document.getElementById('input-das').value = dasDelay;
@@ -1006,14 +1346,190 @@ function updateSettingsLabels() {
 function toggleSettings() {
   const main = document.getElementById('menu-main');
   const panel = document.getElementById('settings-panel');
+  const hsPanel = document.getElementById('highscores-panel');
   const showing = panel.classList.contains('active');
   if (showing) {
     panel.classList.remove('active');
     main.style.display = 'flex';
   } else {
+    if (hsPanel) hsPanel.classList.remove('active');
     panel.classList.add('active');
     main.style.display = 'none';
   }
+}
+
+// ===================== HIGH SCORES =====================
+function loadHighScores() {
+  try {
+    const raw = localStorage.getItem('tetrisHighScores');
+    if (!raw) return { infinite: [], time: [], sprint: [] };
+    const obj = JSON.parse(raw);
+    return {
+      infinite: Array.isArray(obj.infinite) ? obj.infinite : [],
+      time:     Array.isArray(obj.time)     ? obj.time     : [],
+      sprint:   Array.isArray(obj.sprint)   ? obj.sprint   : []
+    };
+  } catch (e) {
+    return { infinite: [], time: [], sprint: [] };
+  }
+}
+
+function saveHighScores() {
+  try {
+    localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
+  } catch (e) {}
+}
+
+function getComparator(m) {
+  return m === 'sprint'
+    ? (a, b) => a.time - b.time
+    : (a, b) => b.score - a.score;
+}
+
+function qualifiesForHighScore(m, scoreObj) {
+  const list = (highScores[m] || []).slice();
+  list.push(scoreObj);
+  list.sort(getComparator(m));
+  const idx = list.indexOf(scoreObj);
+  return idx < 10 ? idx : -1;
+}
+
+function addHighScore(m, scoreObj) {
+  if (!highScores[m]) highScores[m] = [];
+  highScores[m].push(scoreObj);
+  highScores[m].sort(getComparator(m));
+  highScores[m] = highScores[m].slice(0, 10);
+  saveHighScores();
+}
+
+function formatHsTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatHsDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US');
+  } catch (e) {
+    return '';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+}
+
+function renderHighScores() {
+  const body = document.getElementById('highscores-body');
+  if (!body) return;
+  const t = I18N[lang];
+  const list = (highScores[currentHsTab] || []);
+  if (list.length === 0) {
+    body.innerHTML = `<div class="hs-empty">${t.noScores}</div>`;
+    return;
+  }
+  let header = '';
+  let rowsHtml = '';
+  if (currentHsTab === 'infinite') {
+    header = `<tr><th>${t.rankCol}</th><th>${t.nameCol}</th><th>${t.scoreCol}</th><th>${t.linesCol}</th><th>${t.timeCol}</th><th>${t.dateCol}</th></tr>`;
+    rowsHtml = list.map((r, i) =>
+      `<tr><td class="hs-rank">${i+1}</td><td class="hs-name">${escapeHtml(r.name || 'Player')}</td><td>${r.score|0}</td><td>${r.lines|0}</td><td>${formatHsTime(r.time||0)}</td><td>${formatHsDate(r.date)}</td></tr>`
+    ).join('');
+  } else if (currentHsTab === 'time') {
+    header = `<tr><th>${t.rankCol}</th><th>${t.nameCol}</th><th>${t.scoreCol}</th><th>${t.linesCol}</th><th>${t.dateCol}</th></tr>`;
+    rowsHtml = list.map((r, i) =>
+      `<tr><td class="hs-rank">${i+1}</td><td class="hs-name">${escapeHtml(r.name || 'Player')}</td><td>${r.score|0}</td><td>${r.lines|0}</td><td>${formatHsDate(r.date)}</td></tr>`
+    ).join('');
+  } else {
+    header = `<tr><th>${t.rankCol}</th><th>${t.nameCol}</th><th>${t.timeCol}</th><th>${t.dateCol}</th></tr>`;
+    rowsHtml = list.map((r, i) =>
+      `<tr><td class="hs-rank">${i+1}</td><td class="hs-name">${escapeHtml(r.name || 'Player')}</td><td>${formatHsTime(r.time||0)}</td><td>${formatHsDate(r.date)}</td></tr>`
+    ).join('');
+  }
+  body.innerHTML = `<table class="highscores-table"><thead>${header}</thead><tbody>${rowsHtml}</tbody></table>`;
+}
+
+function switchHsTab(m) {
+  currentHsTab = m;
+  document.querySelectorAll('.hs-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === m);
+  });
+  renderHighScores();
+}
+
+function toggleHighScores() {
+  const main = document.getElementById('menu-main');
+  const panel = document.getElementById('highscores-panel');
+  const settings = document.getElementById('settings-panel');
+  const showing = panel.classList.contains('active');
+  if (showing) {
+    panel.classList.remove('active');
+    main.style.display = 'flex';
+  } else {
+    if (settings) settings.classList.remove('active');
+    panel.classList.add('active');
+    main.style.display = 'none';
+    renderHighScores();
+  }
+}
+
+function showOverlayNewRecord(rank) {
+  const t = I18N[lang];
+  const stats = document.getElementById('overlay-stats');
+  const html = `<div class="new-record">${t.newRecord} ${t.rank} #${rank + 1}</div>` + stats.innerHTML;
+  stats.innerHTML = html;
+}
+
+function promptName(scoreObj, rank, m) {
+  pendingScoreObj = scoreObj;
+  pendingScoreMode = m;
+  const t = I18N[lang];
+  document.getElementById('hs-rank-display').textContent = `${t.rank} #${rank + 1}`;
+  const input = document.getElementById('name-input');
+  input.value = lastName || 'Player';
+  document.getElementById('name-modal').classList.add('active');
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+
+function submitName() {
+  if (!pendingScoreObj || !pendingScoreMode) {
+    hideNameModal();
+    return;
+  }
+  const input = document.getElementById('name-input');
+  let name = (input.value || '').trim().slice(0, 12);
+  if (!name) name = 'Player';
+  pendingScoreObj.name = name;
+  lastName = name;
+  saveSettings();
+  addHighScore(pendingScoreMode, pendingScoreObj);
+  pendingScoreObj = null;
+  pendingScoreMode = null;
+  hideNameModal();
+}
+
+function hideNameModal() {
+  document.getElementById('name-modal').classList.remove('active');
+}
+
+function confirmClearScores() {
+  document.getElementById('clear-modal').classList.add('active');
+}
+
+function hideClearModal() {
+  document.getElementById('clear-modal').classList.remove('active');
+}
+
+function doClearScores() {
+  highScores = { infinite: [], time: [], sprint: [] };
+  saveHighScores();
+  renderHighScores();
+  hideClearModal();
 }
 
 document.getElementById('input-das').addEventListener('input', e => {
@@ -1027,9 +1543,20 @@ document.getElementById('input-arr').addEventListener('input', e => {
   saveSettings();
 });
 
+// Name input keyboard handling (Enter submits, Escape stays — must finish entry)
+document.getElementById('name-input').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitName();
+  }
+});
+
 loadSettings();
+highScores = loadHighScores();
 setTheme(currentTheme);
 applyLang();
+renderHighScores();
 </script>
 </body>
 </html>
