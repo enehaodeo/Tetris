@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node -e ' *)",
       "Bash(python -m http.server 8765)",
-      "Bash(curl -s http://127.0.0.1:10086/status)"
+      "Bash(curl -s http://127.0.0.1:10086/status)",
+      "Bash(python -m http.server 8000)"
     ]
   }
 }

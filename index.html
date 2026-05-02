@@ -494,6 +494,7 @@
   <button class="overlay-btn" id="btn-retry" onclick="retryMode()">Retry</button>
   <button class="overlay-btn" id="btn-restart" onclick="retryMode()" style="display:none">Restart</button>
   <button class="overlay-btn" id="btn-cancel-restart" onclick="cancelRestart()" style="display:none">Cancel</button>
+  <button class="overlay-btn" id="btn-save-exit" onclick="saveScoreAndExit()" style="display:none">Save Score & Exit</button>
   <button class="overlay-btn" id="btn-menu" onclick="backToMenu()">Main Menu</button>
 </div>
 
@@ -583,7 +584,8 @@ const I18N = {
     submit: 'OK',
     yes: 'Yes',
     no: 'Cancel',
-    inMenuLabel: 'Rank #'
+    inMenuLabel: 'Rank #',
+    saveExit: 'Save Score & Exit'
   },
   zh: {
     title: '俄罗斯方块',
@@ -635,7 +637,8 @@ const I18N = {
     submit: '确定',
     yes: '确定',
     no: '取消',
-    inMenuLabel: '第'
+    inMenuLabel: '第',
+    saveExit: '保留成绩并退出'
   }
 };
 
@@ -686,6 +689,8 @@ function applyLang() {
   document.getElementById('lbl-confirm-clear').textContent = t.confirmClear;
   document.getElementById('lbl-clear-yes').textContent = t.yes;
   document.getElementById('lbl-clear-no').textContent = t.no;
+  const btnSaveExit = document.getElementById('btn-save-exit');
+  if (btnSaveExit) btnSaveExit.textContent = t.saveExit;
   if (typeof renderHighScores === 'function') renderHighScores();
 }
 
@@ -744,6 +749,14 @@ const KICKS = [
   [0,1],[-2,0],[2,0]
 ];
 
+// NES Tetris (1989) gravity table — frames per row at 60fps, converted to ms
+const NES_GRAVITY = [
+  800, 716, 633, 550, 466, 383, 300, 216, 133, 100, // levels 0-9
+   83,  83,  83,  66,  66,  66,  50,  50,  50,  33, // levels 10-19
+   33,  33,  33,  33,  33,  33,  33,  33,  33,  33, // levels 20-29
+   16                                                    // level 30+
+];
+
 // ===================== STATE =====================
 let board = [];
 let current = null;
@@ -777,6 +790,7 @@ let lastRTime = 0;
 let restartPending = false;
 
 // High score state
+let pendingAfterSubmit = null;
 let highScores = { infinite: [], time: [], sprint: [] };
 let currentHsTab = 'infinite';
 let lastName = '';
@@ -889,7 +903,7 @@ function clearLines() {
       score += lineScore;
     }
     level = Math.floor(linesCleared / 10) + 1;
-    dropInterval = Math.max(50, 1000 - (level - 1) * 80);
+    dropInterval = NES_GRAVITY[Math.min(level - 1, NES_GRAVITY.length - 1)];
     updateUI();
     if (mode === 'sprint' && linesCleared >= 40) endGame(true);
   } else {
@@ -1124,11 +1138,13 @@ document.addEventListener('keydown', e => {
       document.getElementById('btn-retry').style.display = 'none';
       document.getElementById('btn-restart').style.display = 'inline-block';
       document.getElementById('btn-cancel-restart').style.display = 'none';
+      document.getElementById('btn-save-exit').style.display = mode === 'infinite' ? 'inline-block' : 'none';
       document.getElementById('overlay').style.display = 'flex';
     } else {
       document.getElementById('overlay').style.display = 'none';
       document.getElementById('btn-retry').style.display = 'inline-block';
       document.getElementById('btn-restart').style.display = 'none';
+      document.getElementById('btn-save-exit').style.display = 'none';
     }
     return;
   }
@@ -1231,7 +1247,7 @@ function startMode(m) {
   score = 0;
   linesCleared = 0;
   level = 1;
-  dropInterval = 1000;
+  dropInterval = NES_GRAVITY[0];
   dropTimer = 0;
   elapsed = 0;
   b2bChain = -1;
@@ -1270,6 +1286,7 @@ function endGame(completed=false) {
   document.getElementById('btn-cancel-restart').style.display = 'none';
   document.getElementById('overlay').style.display = 'flex';
   restartPending = false;
+  pendingAfterSubmit = null;
 
   // High score qualification check
   let scoreObj = null;
@@ -1310,6 +1327,23 @@ function backToMenu() {
   document.getElementById('overlay').style.display = 'none';
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('menu-screen').style.display = 'flex';
+}
+
+function saveScoreAndExit() {
+  running = false;
+  cancelAnimationFrame(animFrame);
+  paused = false;
+  document.getElementById('overlay').style.display = 'none';
+  const scoreObj = { score, lines: linesCleared, time: elapsed, name: '', date: new Date().toISOString() };
+  const rank = qualifiesForHighScore('infinite', scoreObj);
+  if (rank >= 0) {
+    pendingScoreObj = scoreObj;
+    pendingScoreMode = 'infinite';
+    pendingAfterSubmit = 'menu';
+    promptName(scoreObj, rank, 'infinite');
+  } else {
+    backToMenu();
+  }
 }
 
 function saveSettings() {
@@ -1511,6 +1545,10 @@ function submitName() {
   pendingScoreObj = null;
   pendingScoreMode = null;
   hideNameModal();
+  if (pendingAfterSubmit === 'menu') {
+    pendingAfterSubmit = null;
+    backToMenu();
+  }
 }
 
 function hideNameModal() {
